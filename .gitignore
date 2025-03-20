@@ -1,0 +1,27 @@
+﻿# Byte-compiled / cached
+__pycache__/
+*.py[cod]
+*.swp
+
+# Virtual environment
+venv/
+env/
+
+# Django / database
+db.sqlite3
+*.sqlite3
+
+# Media and static files
+media/
+staticfiles/
+
+# Environment variables / secrets
+.env
+*.log
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

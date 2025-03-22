@@ -5,15 +5,15 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto">                
+                <li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Home</a></li>                
+                <li class="nav-item"><a class="nav-link" href="{% url 'menuitem-list' %}">Menu</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'order-list' %}">Orders</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'receipt-list' %}">Sales Report</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'inventory-list' %}">Inventory</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Menu</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Orders</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Reports</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Inventory</a></li>
                 <li class="nav-item"><a class="nav-link btn btn-primary text-white" href="{% url 'login' %}">Login</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
             </ul>
         </div>
     </div>

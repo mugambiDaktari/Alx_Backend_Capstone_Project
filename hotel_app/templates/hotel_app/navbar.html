@@ -5,15 +5,34 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">                
-                <li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Home</a></li>                
-                <li class="nav-item"><a class="nav-link" href="{% url 'menuitem-list' %}">Menu</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'order-list' %}">Orders</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'receipt-list' %}">Sales Report</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'inventory-list' %}">Inventory</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
-                <li class="nav-item"><a class="nav-link btn btn-primary text-white" href="{% url 'login' %}">Login</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'homepage' %}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/menu/' %}active{% endif %}" href="{% url 'menuitem-list' %}">Menu</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/orders/' %}active{% endif %}" href="{% url 'order-list' %}">Orders</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/sales/' %}active{% endif %}" href="{% url 'receipt-list' %}">Sales Report</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/inventory/' %}active{% endif %}" href="{% url 'inventory-list' %}">Inventory</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/register/' %}active{% endif %}" href="{% url 'register' %}">Register</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="{% url 'login' %}">Login</a>
+                </li>
+                <li class="nav-item">
+                    <form id="logout-form" method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link btn btn-link text-danger">Logout</button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>

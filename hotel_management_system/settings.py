@@ -113,5 +113,5 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'hotel_app.User'
-LOGIN_REDIRECT_URL = 'dashboard'  # Redirect after login
-LOGOUT_REDIRECT_URL = 'login'  # Redirect after logout
+LOGIN_REDIRECT_URL = 'homepage'  # Redirects user to homepage after login
+LOGOUT_REDIRECT_URL = 'login'  # Redirect login page after logout

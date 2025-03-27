@@ -8,7 +8,7 @@ def validate_positive(value):
         raise serializers.ValidationError("Value cannot be negative.")
     return value
 
-# ===================== User Serializer =====================
+# User Serializer 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
 
@@ -44,7 +44,7 @@ class UserSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-# ===================== MenuItem Serializer =====================
+# MenuItem Serializer 
 class MenuItemSerializer(serializers.ModelSerializer):
     price = serializers.DecimalField(max_digits=10, decimal_places=2, validators=[validate_positive])
     quantity = serializers.IntegerField(validators=[validate_positive])
@@ -54,7 +54,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'price', 'category', 'availability', 'quantity', 'product_photo']
 
 
-# ===================== OrderItem Serializer =====================
+# OrderItem Serializer 
 class OrderItemSerializer(serializers.ModelSerializer):
     menu_item = serializers.CharField(source='menu_item.name', read_only=True)
 
@@ -63,7 +63,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'order', 'menu_item', 'quantity', 'price_at_time_of_order']
 
 
-# ===================== Order Serializer =====================
+# Order Serializer 
 class OrderSerializer(serializers.ModelSerializer): 
     customer = serializers.SerializerMethodField()  # Return full name or username
     items = serializers.PrimaryKeyRelatedField(
@@ -102,20 +102,23 @@ class OrderSerializer(serializers.ModelSerializer):
             order_item = OrderItem.objects.create(order=order, menu_item=menu_item, quantity=1)
             total_price += order_item.get_total_price()
         
+        # Update total price and save order
+        order.total_price = total_price
+        order.save()
+
+        return order # return the order object
+
     def get_item_details(self, obj):
         return [
             {
+                "id": item.menu_item.id,
                 "name": item.menu_item.name,
-                "quantity": item.quantity,
                 "price": str(item.menu_item.price)
             }
             for item in obj.orderitem_set.all()
         ]
-        # Update total price and save order
-        order.total_price = total_price
-        order.save()
-        
-        return order
+    
+
 
     
     def get_customer(self, obj):
@@ -123,46 +126,79 @@ class OrderSerializer(serializers.ModelSerializer):
         return full_name if full_name else obj.customer.username
 
 
-# ===================== Receipt Serializer =====================
+# Receipt Serializer 
+# Order Summary Serializer
+class OrderSummarySerializer(serializers.ModelSerializer):
+    items = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ["id", "items"]
+
+    def get_items(self, obj):
+        return [
+            {
+                "menu_item": item.menu_item.name,
+                "quantity": item.quantity,
+                "total_price": item.get_total_price(),
+            }
+            for item in obj.orderitem_set.all()
+        ]
+
+# Receipt Serializer
 class ReceiptSerializer(serializers.ModelSerializer):
-    orders = serializers.SerializerMethodField()  # Custom field for order details
-    waiter = serializers.CharField(source='waiter.username', read_only=True)  # Return only the waiter's username
+    orders = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Order.objects.exclude(receipts__isnull=False),  # 🔥 Exclude orders linked to a receipt
+        write_only=True,
+    )  # Allow selecting only unassigned orders
+    order_details = serializers.SerializerMethodField()  # Show order details in response
+    waiter = serializers.CharField(source="waiter.username", read_only=True)
 
     class Meta:
         model = Receipt
-        fields = ['id', 'orders', 'waiter', 'total_amount', 'printed', 'settled', 'printed_at']
+        fields = ["id", "orders", "order_details", "waiter", "total_amount", "printed", "settled", "printed_at"]
+        read_only_fields = ["order_details", "total_amount", "printed_at"]  # Auto-generated fields
 
-    def update(self, instance, validated_data):
-        user = self.context['request'].user
+    def create(self, validated_data):
+        # Create a receipt with selected orders and auto-calculate total amount.
+        order_ids = validated_data.pop("orders", [])  # Get only IDs, not objects
+        user = self.context["request"].user  # Get the logged-in user
 
-        # Prevent customers from changing printed/settled status
-        if not user.is_staff:
-            validated_data.pop('printed', None)
-            validated_data.pop('settled', None)
+        if not order_ids:
+            raise serializers.ValidationError({"orders": "At least one order is required to create a receipt."})
 
-        return super().update(instance, validated_data)
+        # Step 1: Create Receipt FIRST (without orders)
+        receipt = Receipt.objects.create(waiter=user)  
 
-    def get_orders(self, obj):
-        # Return a list of menu items with quantity and total price per item
-        orders_data = []
-        for order in obj.orders.all():
-            order_items = order.orderitem_set.all()  # Get all items in the order
-            items_list = [
-                {
-                    "menu_item": item.menu_item.name,  # Name of the menu item
-                    "quantity": item.quantity,
-                    "total_price": item.get_total_price(),  # Price * Quantity
-                }
-                for item in order_items
-            ]
-            orders_data.append({
+        # Step 2: Add orders using IDs
+        receipt.orders.set(order_ids)  # Ensure only order IDs are passed
+
+        # Step 3: Recalculate total and update receipt
+        receipt.total_amount = receipt.calculate_total_amount()
+        receipt.save(update_fields=["total_amount"])
+
+        return receipt
+
+    def get_order_details(self, obj):
+        # Return detailed info of orders in the receipt.
+        return [
+            {
                 "order_id": order.id,
-                "items": items_list
-            })
-        return orders_data
-
-
-# ===================== SalesReport Serializer =====================
+                "total_price": order.total_price,
+                "items": [
+                    {
+                        "menu_item": item.menu_item.name,
+                        "quantity": item.quantity,
+                        "price": str(item.menu_item.price)
+                    }
+                    for item in order.orderitem_set.all()
+                ],
+            }
+            for order in obj.orders.all()
+        ]
+    
+# SalesReport Serializer 
 class SalesReportSerializer(serializers.ModelSerializer):
     waiter = serializers.CharField(source='waiter.username', read_only=True)  # Return waiter's username
     date = serializers.DateField(format="%Y-%m-%d")  # Ensure date is formatted properly
@@ -180,7 +216,7 @@ class SalesReportSerializer(serializers.ModelSerializer):
         ]
 
 
-# ===================== Inventory Serializer =====================
+# Inventory Serializer 
 class InventorySerializer(serializers.ModelSerializer):
     is_low_stock = serializers.SerializerMethodField()
 

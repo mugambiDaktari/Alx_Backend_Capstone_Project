@@ -12,8 +12,9 @@
 <body>
 
     <!-- Hero Section -->
+    {% include 'hotel_app/navbar.html' %}
      <div class="homepage">
-        {% include 'hotel_app/navbar.html' %}
+        
         <header class="hero-section text-center text-white d-flex align-items-center justify-content-center">            
             <div>
                 <h1>Welcome to Flamingo Hotel</h1>
@@ -21,9 +22,9 @@
                 <a href="#" class="btn btn-primary">Make a Reservation</a>
             </div>            
         </header>
-        {% include 'hotel_app/footer.html' %}
+        
     </div> 
-
+    {% include 'hotel_app/footer.html' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% load static %}
     <script src="{% static 'js/script.js' %}"></script>

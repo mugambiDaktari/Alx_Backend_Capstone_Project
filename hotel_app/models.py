@@ -74,26 +74,25 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
 class Receipt(models.Model):
-    orders = models.ManyToManyField(Order, related_name="receipt_orders")
-    waiter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'waiter'})
+    waiter = models.ForeignKey(User, on_delete=models.CASCADE)
+    orders = models.ManyToManyField(Order, related_name="receipts")
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     printed = models.BooleanField(default=False)
     settled = models.BooleanField(default=False)
     printed_at = models.DateTimeField(null=True, blank=True)
 
     def calculate_total_amount(self):
-        """Calculate total amount from all orders in this receipt."""
-        return sum(order.total_price for order in self.orders.all())
+        """Calculate the total amount based on orders."""
+        if self.pk:  # Ensure the Receipt is already saved
+            return sum(order.total_price for order in self.orders.all())
+        return 0  # Return 0 if the receipt is not saved yet
 
     def save(self, *args, **kwargs):
-        """Update total_amount before saving the receipt."""
-        self.total_amount = self.calculate_total_amount()
-        if self.printed and not self.printed_at:
-            self.printed_at = now()  # Set printed time when first printed
-        super().save(*args, **kwargs)
+        """Save the receipt and update the total amount after adding orders."""
+        super().save(*args, **kwargs)  # Save first to get an ID
+        self.total_amount = self.calculate_total_amount()  # Now update the amount
+        super().save(update_fields=["total_amount"])  # Save again to update amount
 
-    def __str__(self):
-        return f"Receipt #{self.id} - Total: {self.total_amount} - Printed: {self.printed}"
 
 
 class SalesReport(models.Model):

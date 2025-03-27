@@ -42,6 +42,8 @@ class OrderItem(models.Model):
 
     def get_total_price(self):
         return self.price_at_time_of_order * self.quantity  # Use saved price
+    
+
 
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -59,10 +61,16 @@ class Order(models.Model):
     receipt = models.ForeignKey("Receipt", on_delete=models.SET_NULL, null=True, blank=True, related_name="order_receipts")
 
     def calculate_total_price(self):
-        return self.orderitem_set.aggregate(total=Sum(F("menu_item__price") * F("quantity")))["total"] or 0.00
+        total = self.orderitem_set.aggregate(total=Sum(F("price_at_time_of_order") * F("quantity")))["total"] or 0.00
+        return total
+
+    def update_total_price(self):
+        self.total_price = self.calculate_total_price()
+        self.save(update_fields=['total_price'])  # Avoid recursion in save()
 
     def save(self, *args, **kwargs):
-        self.total_price = self.calculate_total_price()
+        if self.pk:  # Only update total_price if Order already exists
+            self.total_price = self.calculate_total_price()
         super().save(*args, **kwargs)
 
 class Receipt(models.Model):

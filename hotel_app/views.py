@@ -8,6 +8,7 @@ from django.utils.timezone import now
 
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from hotel_app.models import User, MenuItem, Order, OrderItem, Receipt, SalesReport, Inventory
 from hotel_app.serializers import (
@@ -15,6 +16,7 @@ from hotel_app.serializers import (
     ReceiptSerializer, SalesReportSerializer, InventorySerializer
 )
 from hotel_app.forms import UserRegistrationForm
+from rest_framework import serializers
 # AUTHENTICATION VIEWS
 class HomeView(TemplateView):
     template_name = "hotel_app/homepage.html"
@@ -54,15 +56,16 @@ class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def perform_create(self, serializer):
+        serializer.save(customer=self.request.user)
+    
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:
             return Order.objects.all().prefetch_related('items')  # Admins see all orders
         return Order.objects.filter(customer=user).prefetch_related('items')  # Customers see only their own
 
-    def perform_create(self, serializer):
-        # Automatically set the customer when an order is created
-        serializer.save(customer=self.request.user)
+    
 
     def update(self, request, *args, **kwargs):
         order = self.get_object()
@@ -75,6 +78,54 @@ class OrderViewSet(viewsets.ModelViewSet):
         if request.user != order.customer and not request.user.is_staff:
             return Response({"detail": "You can only cancel your own orders."}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def add_item(self, request, pk=None):
+        """ Allow users to add items to an existing order. """
+        order = self.get_object()
+        if order.status != "pending":
+            return Response({"error": "Cannot modify a non-pending order."}, status=status.HTTP_400_BAD_REQUEST)
+
+        menu_item_id = request.data.get("menu_item_id")
+        quantity = request.data.get("quantity", 1)
+
+        try:
+            menu_item = MenuItem.objects.get(id=menu_item_id)
+        except MenuItem.DoesNotExist:
+            return Response({"error": "Menu item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        order_item, created = OrderItem.objects.get_or_create(order=order, menu_item=menu_item)
+        if not created:
+            order_item.quantity += int(quantity)
+            order_item.save()
+
+        order.total_price = order.calculate_total_price()
+        order.save()
+
+        return Response({"message": "Item added successfully!"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def remove_item(self, request, pk=None):
+        """ Allow users to remove items from an order, ensuring at least one item remains. """
+        order = self.get_object()
+        if order.status != "pending":
+            return Response({"error": "Cannot modify a non-pending order."}, status=status.HTTP_400_BAD_REQUEST)
+
+        menu_item_id = request.data.get("menu_item_id")
+
+        try:
+            order_item = OrderItem.objects.get(order=order, menu_item_id=menu_item_id)
+        except OrderItem.DoesNotExist:
+            return Response({"error": "Item not found in the order."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.orderitem_set.count() == 1:
+            return Response({"error": "An order must have at least one item."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order_item.delete()
+        order.total_price = order.calculate_total_price()
+        order.save()
+
+        return Response({"message": "Item removed successfully!"}, status=status.HTTP_200_OK)
 
 # ORDER ITEM VIEWSET
 class OrderItemViewSet(viewsets.ModelViewSet):

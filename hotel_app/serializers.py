@@ -64,14 +64,60 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 # ===================== Order Serializer =====================
-class OrderSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer): 
     customer = serializers.SerializerMethodField()  # Return full name or username
-    items = OrderItemSerializer(many=True, read_only=True)
-
+    items = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=MenuItem.objects.all(), write_only=True
+    ) 
+    item_details = serializers.SerializerMethodField()  # Show full menu item details
+ 
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'items', 'total_price', 'status', 'created_at', 'updated_at', 'receipt']
+        fields = ["id", "customer", "items","item_details", "total_price", "status", "created_at"]
+        read_only_fields = ["customer", "total_price", "status", "created_at"]  # Don't require them in input
 
+    def create(self, validated_data):
+        """Create an order and calculate total price based on selected menu item IDs."""
+        menu_items = validated_data.pop("items", [])  # This is a list of MenuItem instances
+        item_ids = [item.id for item in menu_items]  # Extract menu item IDs
+
+        print("🚀 DEBUG: Received item_ids:", item_ids)  # Debugging output
+        print("🚀 DEBUG: Raw items in validated_data:", validated_data.get("items"))
+
+        if not isinstance(item_ids, list):
+            raise serializers.ValidationError({"items": "Invalid data format. Expected a list of menu item IDs."})
+
+        user = self.context["request"].user  # Get logged-in user
+        order = Order.objects.create(customer=user)
+
+        total_price = 0
+        for item_id in item_ids:
+            try:
+                menu_item = MenuItem.objects.get(id=item_id)  # Fetch menu item from DB
+                print("🚀 DEBUG: Processing menu_item:", menu_item.name)  # Debug output
+            except MenuItem.DoesNotExist:
+                raise serializers.ValidationError({"items": f"Menu item with ID {item_id} not found."})
+
+            # Create OrderItem
+            order_item = OrderItem.objects.create(order=order, menu_item=menu_item, quantity=1)
+            total_price += order_item.get_total_price()
+        
+    def get_item_details(self, obj):
+        return [
+            {
+                "name": item.menu_item.name,
+                "quantity": item.quantity,
+                "price": str(item.menu_item.price)
+            }
+            for item in obj.orderitem_set.all()
+        ]
+        # Update total price and save order
+        order.total_price = total_price
+        order.save()
+        
+        return order
+
+    
     def get_customer(self, obj):
         full_name = f"{obj.customer.first_name} {obj.customer.last_name}".strip()
         return full_name if full_name else obj.customer.username

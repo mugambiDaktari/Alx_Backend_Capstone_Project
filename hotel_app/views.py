@@ -17,6 +17,14 @@ from hotel_app.serializers import (
 )
 from hotel_app.forms import UserRegistrationForm
 from rest_framework import serializers
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+
+from django.db.models import Sum
+from decimal import Decimal
+
 # AUTHENTICATION VIEWS
 class HomeView(TemplateView):
     template_name = "hotel_app/homepage.html"
@@ -150,7 +158,66 @@ class ReceiptViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
 # SALES REPORT VIEWSET
-class SalesReportViewSet(viewsets.ModelViewSet):
+class IsAdminOrManager(permissions.BasePermission):
+    """
+    Custom permission: Only allow admins and managers to view reports.
+    """
+
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.role == "manager")
+
+class SalesReportViewSet(viewsets.ReadOnlyModelViewSet):  # ReadOnly prevents creation
+    serializer_class = SalesReportSerializer
+    permission_classes = [IsAdminOrManager]
+
+    def get_queryset(self):
+        """
+        Returns sales reports for today's date only, grouped by waiter.
+        """
+        today = now().date()
+
+        # Get all distinct waiters who have printed/settled receipts today
+        waiters = User.objects.filter(
+            receipt__printed_at__date=today,
+            receipt__printed=True
+        ).distinct()
+
+        # Create sales reports dynamically
+        return [
+            SalesReport(
+                waiter=waiter,
+                date=today
+            )
+            for waiter in waiters
+        ]
+
+
+@receiver(post_save, sender=Receipt)
+def update_sales_report(sender, instance, **kwargs):
+    """Automatically update sales report when receipt status changes"""
+    today = now().date()
+    sales_report, created = SalesReport.objects.get_or_create(waiter=instance.waiter, date=today)
+
+    if instance.settled:  # Receipt is now settled
+        sales_report.settled_receipts_count += 1
+        # sales_report.total_settled_amount += instance.total_amount
+        sales_report.total_settled_amount += Decimal(instance.total_amount)
+        
+        # If it was previously printed, adjust counts
+        if instance.printed:
+            sales_report.printed_receipts_count = max(0, sales_report.printed_receipts_count - 1)
+            sales_report.total_printed_amount = max(0, sales_report.total_printed_amount - instance.total_amount)
+
+    elif instance.printed:  # Receipt is only printed (not settled)
+        sales_report.printed_receipts_count += 1
+        # sales_report.total_printed_amount += instance.total_amount
+        sales_report.total_printed_amount += Decimal(instance.total_amount)
+
+
+    sales_report.save()
+
+
+""" class SalesReportViewSet(viewsets.ModelViewSet):
     queryset = SalesReport.objects.all()
     serializer_class = SalesReportSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -158,7 +225,7 @@ class SalesReportViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Allow filtering by today's date
         today = now().date()
-        return SalesReport.objects.filter(date=today)
+        return SalesReport.objects.filter(date=today) """
 
 # INVENTORY VIEWSET
 class InventoryViewSet(viewsets.ModelViewSet):

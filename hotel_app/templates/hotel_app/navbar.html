@@ -16,7 +16,10 @@
                     <a class="nav-link {% if request.path == '/orders/' %}active{% endif %}" href="{% url 'order-list' %}">Orders</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if request.path == '/sales/' %}active{% endif %}" href="{% url 'receipt-list' %}">Sales Report</a>
+                    <a class="nav-link {% if request.path == '/sales/' %}active{% endif %}" href="{% url 'receipt-list' %}">Receipts</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/sales-reports/' %}active{% endif %}" href="{% url 'salesreport-list' %}">Sales Report</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.path == '/inventory/' %}active{% endif %}" href="{% url 'inventory-list' %}">Inventory</a>

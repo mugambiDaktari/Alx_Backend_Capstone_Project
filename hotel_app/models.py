@@ -73,6 +73,7 @@ class Order(models.Model):
             self.total_price = self.calculate_total_price()
         super().save(*args, **kwargs)
 
+
 class Receipt(models.Model):
     waiter = models.ForeignKey(User, on_delete=models.CASCADE)
     orders = models.ManyToManyField(Order, related_name="receipts")
@@ -88,12 +89,34 @@ class Receipt(models.Model):
         return 0  # Return 0 if the receipt is not saved yet
 
     def save(self, *args, **kwargs):
-        """Save the receipt and update the total amount after adding orders."""
+        """Automatically set `printed_at` when a receipt is printed."""
+        if self.printed and self.printed_at is None:
+            self.printed_at = now()  # Automatically set printed_at when printed
+        
         super().save(*args, **kwargs)  # Save first to get an ID
+        
         self.total_amount = self.calculate_total_amount()  # Now update the amount
         super().save(update_fields=["total_amount"])  # Save again to update amount
 
+""" class Receipt(models.Model):
+    waiter = models.ForeignKey(User, on_delete=models.CASCADE)
+    orders = models.ManyToManyField(Order, related_name="receipts")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    printed = models.BooleanField(default=False)
+    settled = models.BooleanField(default=False)
+    printed_at = models.DateTimeField(null=True, blank=True)
 
+    def calculate_total_amount(self):
+        #Calculate the total amount based on orders.
+        if self.pk:  # Ensure the Receipt is already saved
+            return sum(order.total_price for order in self.orders.all())
+        return 0  # Return 0 if the receipt is not saved yet
+
+    def save(self, *args, **kwargs):
+        # Save the receipt and update the total amount after adding orders.
+        super().save(*args, **kwargs)  # Save first to get an ID
+        self.total_amount = self.calculate_total_amount()  # Now update the amount
+        super().save(update_fields=["total_amount"])  # Save again to update amount """
 
 class SalesReport(models.Model):
     waiter = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sales_reports")

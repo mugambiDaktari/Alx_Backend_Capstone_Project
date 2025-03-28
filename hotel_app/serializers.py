@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from hotel_app.models import User, MenuItem, OrderItem, Order, Receipt, SalesReport, Inventory
+from django.utils.timezone import now
+from django.db import models
 
 # Helper function to validate positive numbers
 def validate_positive(value):
@@ -118,9 +120,6 @@ class OrderSerializer(serializers.ModelSerializer):
             for item in obj.orderitem_set.all()
         ]
     
-
-
-    
     def get_customer(self, obj):
         full_name = f"{obj.customer.first_name} {obj.customer.last_name}".strip()
         return full_name if full_name else obj.customer.username
@@ -149,7 +148,7 @@ class OrderSummarySerializer(serializers.ModelSerializer):
 class ReceiptSerializer(serializers.ModelSerializer):
     orders = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=Order.objects.exclude(receipts__isnull=False),  # 🔥 Exclude orders linked to a receipt
+        queryset=Order.objects.exclude(receipts__isnull=False),  # Exclude orders linked to a receipt from selection
         write_only=True,
     )  # Allow selecting only unassigned orders
     order_details = serializers.SerializerMethodField()  # Show order details in response
@@ -200,20 +199,44 @@ class ReceiptSerializer(serializers.ModelSerializer):
     
 # SalesReport Serializer 
 class SalesReportSerializer(serializers.ModelSerializer):
-    waiter = serializers.CharField(source='waiter.username', read_only=True)  # Return waiter's username
-    date = serializers.DateField(format="%Y-%m-%d")  # Ensure date is formatted properly
+    waiter = serializers.CharField(source="waiter.username", read_only=True)  # Display waiter’s username
+    date = serializers.DateField(format="%Y-%m-%d", read_only=True)  # Ensure date is formatted properly
+    printed_receipts_count = serializers.SerializerMethodField()
+    settled_receipts_count = serializers.SerializerMethodField()
+    total_printed_amount = serializers.SerializerMethodField()
+    total_settled_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = SalesReport
         fields = [
-            'id',
-            'waiter',
-            'date',
-            'printed_receipts_count',
-            'settled_receipts_count',
-            'total_printed_amount',
-            'total_settled_amount'
+            "waiter",
+            "date",
+            "printed_receipts_count",
+            "settled_receipts_count",
+            "total_printed_amount",
+            "total_settled_amount",
         ]
+
+    def get_printed_receipts_count(self, obj):
+        """Count receipts that have been printed today."""
+        return Receipt.objects.filter(waiter=obj.waiter, printed=True, printed_at__date=now().date()).count()
+
+    def get_settled_receipts_count(self, obj):
+        """Count receipts that have been settled today."""
+        return Receipt.objects.filter(waiter=obj.waiter, settled=True, printed_at__date=now().date()).count()
+
+    def get_total_printed_amount(self, obj):
+        """Sum the total amount of printed receipts today."""
+        return Receipt.objects.filter(waiter=obj.waiter, printed=True, printed_at__date=now().date()).aggregate(
+            total=models.Sum("total_amount")
+        )["total"] or 0
+
+    def get_total_settled_amount(self, obj):
+        """Sum the total amount of settled receipts today."""
+        return Receipt.objects.filter(waiter=obj.waiter, settled=True, printed_at__date=now().date()).aggregate(
+            total=models.Sum("total_amount")
+        )["total"] or 0
+
 
 
 # Inventory Serializer 

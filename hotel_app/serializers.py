@@ -245,8 +245,8 @@ class InventorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Inventory
-        fields = ['id', 'item', 'quantity', 'threshold', 'is_low_stock']
-        read_only_fields = ['item']  # Prevents accidental renaming
+        fields = ['id', 'item_name', 'quantity', 'threshold', 'is_low_stock']
+        read_only_fields = ['is_low_stock']  
 
     def get_is_low_stock(self, obj):
         return obj.quantity <= obj.threshold

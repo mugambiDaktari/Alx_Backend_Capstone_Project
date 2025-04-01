@@ -158,7 +158,7 @@ def update_report(cls, waiter):
 
 # Inventory Model
 class Inventory(models.Model):
-    item = models.CharField(max_length=100, unique=True)
+    item_name = models.CharField(max_length=100, unique=True)
     quantity = models.PositiveIntegerField()
     threshold = models.PositiveIntegerField()
 

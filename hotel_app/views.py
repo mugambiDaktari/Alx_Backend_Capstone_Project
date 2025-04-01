@@ -72,7 +72,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         if user.is_staff:
             return Order.objects.all().prefetch_related('items')  # Admins see all orders
         return Order.objects.filter(customer=user).prefetch_related('items')  # Customers see only their own
-
+    def destroy(self, request, *args, **kwargs):
+        # Ensure only admins (superusers) can delete orders.
+        if not request.user.is_superuser:
+            return Response({"error": "Only admins can delete orders. Please contact mugambiDaktari @https://www.linkedin.com/in/dr-mugambi-wycliff-77319511b/"}, status=403)
+        return super().destroy(request, *args, **kwargs)
     
 
     def update(self, request, *args, **kwargs):
@@ -156,7 +160,11 @@ class ReceiptViewSet(viewsets.ModelViewSet):
                 return Response({"detail": "Only staff can change receipt status."}, status=status.HTTP_403_FORBIDDEN)
 
         return super().update(request, *args, **kwargs)
-
+    def destroy(self, request, *args, **kwargs):
+        # Ensure only admins (superusers) can delete receipts.
+        if not request.user.is_superuser:
+            return Response({"error": "Only admins can delete receipts. Please contact mugambiDaktari @https://www.linkedin.com/in/dr-mugambi-wycliff-77319511b/"}, status=403)
+        return super().destroy(request, *args, **kwargs)
 # SALES REPORT VIEWSET
 class IsAdminOrManager(permissions.BasePermission):
     """
@@ -216,19 +224,20 @@ def update_sales_report(sender, instance, **kwargs):
 
     sales_report.save()
 
-
-""" class SalesReportViewSet(viewsets.ModelViewSet):
-    queryset = SalesReport.objects.all()
-    serializer_class = SalesReportSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        # Allow filtering by today's date
-        today = now().date()
-        return SalesReport.objects.filter(date=today) """
-
 # INVENTORY VIEWSET
 class InventoryViewSet(viewsets.ModelViewSet):
     queryset = Inventory.objects.all()
     serializer_class = InventorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        # Ensure only admins (superusers) can create inventory items.
+        if not request.user.is_superuser:
+            return Response({"error": "Only admins can create inventory items. Please contact mugambiDaktari @https://www.linkedin.com/in/dr-mugambi-wycliff-77319511b/"}, status=403)
+        return super().create(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        # Ensure only admins (superusers) can delete inventory items.
+        if not request.user.is_superuser:
+            return Response({"error": "Only admins can delete inventory items. Please contact mugambiDaktari @https://www.linkedin.com/in/dr-mugambi-wycliff-77319511b/"}, status=403)
+        return super().destroy(request, *args, **kwargs)

@@ -72,6 +72,7 @@ class OrderSerializer(serializers.ModelSerializer):
         many=True, queryset=MenuItem.objects.all(), write_only=True
     ) 
     item_details = serializers.SerializerMethodField()  # Show full menu item details
+    
  
     class Meta:
         model = Order

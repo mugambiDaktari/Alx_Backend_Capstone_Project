@@ -214,12 +214,13 @@ def update_sales_report(sender, instance, **kwargs):
         # If it was previously printed, adjust counts
         if instance.printed:
             sales_report.printed_receipts_count = max(0, sales_report.printed_receipts_count - 1)
-            sales_report.total_printed_amount = max(0, sales_report.total_printed_amount - instance.total_amount)
+            sales_report.total_printed_amount = Decimal(max(0, sales_report.total_printed_amount - instance.total_amount))
 
     elif instance.printed:  # Receipt is only printed (not settled)
         sales_report.printed_receipts_count += 1
         # sales_report.total_printed_amount += instance.total_amount
         sales_report.total_printed_amount += Decimal(instance.total_amount)
+        # sales_report.total_printed_amount += Decimal(str(instance.total_amount))
 
 
     sales_report.save()

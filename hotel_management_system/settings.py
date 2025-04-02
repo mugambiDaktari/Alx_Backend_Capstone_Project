@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -121,7 +121,20 @@ SIMPLE_JWT = {
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+# Define the directory where static files will be collected
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# URLs for static and media files
+STATIC_URL = "/static/"
+MEDIA_URL = "/media/"
+
+# Directory where user-uploaded files will be stored
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# Ensure static files are collected
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "hotel_app", "static")]
+
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -131,3 +144,24 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'hotel_app.User'
 LOGIN_REDIRECT_URL = 'homepage'  # Redirects user to homepage after login
 LOGOUT_REDIRECT_URL = 'login'  # Redirect login page after logout
+
+#  security against XSS, clickjacking, and MIME attacks
+""" SECURE_BROWSER_XSS_FILTER = True  # Protects against XSS attacks
+X_FRAME_OPTIONS = "DENY"  # Prevents clickjacking attacks
+SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevents MIME-type sniffing
+
+SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
+SESSION_COOKIE_SECURE = True  # Secure session cookies
+CSRF_COOKIE_SECURE = True  # Secure CSRF cookies
+
+# HTTP Strict Transport Security (HSTS) settings
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+SECURE_REFERRER_POLICY = "same-origin"  # Referrer policy to control the information sent in the Referer header
+
+CSRF_COOKIE_SECURE = True  # Only send CSRF cookie over HTTPS
+CSRF_USE_SESSIONS = True  # Store CSRF token in sessions instead of cookies
+
+X_FRAME_OPTIONS = "DENY"  # Prevents clickjacking attacks by not allowing the site to be displayed in a frame or iframe """

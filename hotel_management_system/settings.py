@@ -146,7 +146,7 @@ LOGIN_REDIRECT_URL = 'homepage'  # Redirects user to homepage after login
 LOGOUT_REDIRECT_URL = 'login'  # Redirect login page after logout
 
 #  security against XSS, clickjacking, and MIME attacks
-""" SECURE_BROWSER_XSS_FILTER = True  # Protects against XSS attacks
+SECURE_BROWSER_XSS_FILTER = True  # Protects against XSS attacks
 X_FRAME_OPTIONS = "DENY"  # Prevents clickjacking attacks
 SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevents MIME-type sniffing
 
@@ -164,4 +164,4 @@ SECURE_REFERRER_POLICY = "same-origin"  # Referrer policy to control the informa
 CSRF_COOKIE_SECURE = True  # Only send CSRF cookie over HTTPS
 CSRF_USE_SESSIONS = True  # Store CSRF token in sessions instead of cookies
 
-X_FRAME_OPTIONS = "DENY"  # Prevents clickjacking attacks by not allowing the site to be displayed in a frame or iframe """
+X_FRAME_OPTIONS = "DENY"  # Prevents clickjacking attacks by not allowing the site to be displayed in a frame or iframe 

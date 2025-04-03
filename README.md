@@ -205,7 +205,7 @@ Authorization: Bearer <admin-token>
 {
     "name": "Tomatoes",
     "quantity": 50,
-    "unit": "kg"
+    "threshhold": "10"
 }
 List all inventory items (Admins & Staff only)
 GET 
